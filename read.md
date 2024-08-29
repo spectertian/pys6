@@ -3,6 +3,7 @@ pip install pyinstaller
 
 
 pyi-makespec --onefile --windowed --add-data "icons/*;icons/" --add-data "screenshots/*;screenshots/" --icon=icons/link.png --name "screen" main.py
+pyi-makespec --onefile --windowed --add-data "icons/*;icons/" --add-data "screenshots/*;screenshots/" --icon=icons/link.png --name "screen" 8.py
 
 
 pyinstaller --clean screen.spec
@@ -22,5 +23,7 @@ pip install pdf2image pytesseract opencv-python numpy pandas openpyxl
 pip install paddleocr pdf2image openpyxl pandas
 
 
+
+pip install pywin32
 
 ```

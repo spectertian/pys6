@@ -16,6 +16,41 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtWidgets import QWidget, QRubberBand, QApplication, QLabel
 from PySide6.QtCore import Qt, QRect, QPoint, Signal, QTimer
 from PySide6.QtGui import QPixmap, QGuiApplication
+
+import sys
+import os
+import tempfile
+import win32pipe, win32file, pywintypes
+def is_already_running():
+    try:
+        pipe_name = r'\\.\pipe\ScreenshotToolSingleInstance'
+        handle = win32file.CreateFile(
+            pipe_name,
+            win32file.GENERIC_READ | win32file.GENERIC_WRITE,
+            0,
+            None,
+            win32file.OPEN_EXISTING,
+            0,
+            None
+        )
+        # 如果能打开管道，说明已经有一个实例在运行
+        win32file.CloseHandle(handle)
+        return True
+    except pywintypes.error:
+        # 如果管道不存在，说明这是第一个实例
+        return False
+
+def create_single_instance_pipe():
+    pipe_name = r'\\.\pipe\ScreenshotToolSingleInstance'
+    pipe_handle = win32pipe.CreateNamedPipe(
+        pipe_name,
+        win32pipe.PIPE_ACCESS_DUPLEX,
+        win32pipe.PIPE_TYPE_MESSAGE | win32pipe.PIPE_READMODE_MESSAGE | win32pipe.PIPE_WAIT,
+        1, 65536, 65536,
+        0,
+        None
+    )
+    return pipe_handle
 def global_exception_handler(exctype, value, traceback):
     print("Unhandled exception:", exctype, value)
     print("Traceback:")
@@ -1244,11 +1279,17 @@ class GlobalEventFilter(QObject):
 
 if __name__ == "__main__":
     try:
+        if is_already_running():
+            print("Application is already running.")
+            sys.exit(0)
+
+        pipe_handle = create_single_instance_pipe()
+
         sys.excepthook = global_exception_handler
         app = QApplication(sys.argv)
-
         global_event_filter = GlobalEventFilter()
         app.installEventFilter(global_event_filter)
+
         splash = SplashScreen()
         splash.show()
 
@@ -1262,18 +1303,14 @@ if __name__ == "__main__":
 
 
         QTimer.singleShot(5000, show_main_window)
-        # app.lastWindowClosed.connect(app.quit)
-        # app.lastWindowClosed.connect(app.quit)
 
-        # 使用 app.quit() 来确保应用程序正确退出
         app.aboutToQuit.connect(app.deleteLater)
+
         sys.exit(app.exec())
-        # exit_code = app.exec()        # 确保所有窗口都被关闭
-        # app.closeAllWindows()
-        #
-        # # 退出程序
-        # sys.exit(exit_code)
 
     except Exception as e:
         print(f"An error occurred: {e}")
         traceback.print_exc()
+    finally:
+        if 'pipe_handle' in locals():
+            win32file.CloseHandle(pipe_handle)
