@@ -108,14 +108,18 @@ class ScreenshotItem(QWidget):
         container = QWidget()
         container.setStyleSheet("background-color: transparent;")
         container_layout = QGridLayout(container)
-        container_layout.setContentsMargins(5, 5, 5, 5)
+        container_layout.setContentsMargins(0, 0, 0, 0)
         container_layout.setSpacing(0)
 
         # 图片标签
         self.image_label = QLabel()
-        self.image_label.setPixmap(pixmap.scaled(140, 140, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        self.image_label.setFixedSize(300, 150)  # 设置固定大小
+        self.image_label.setScaledContents(True)  # 允许内容缩放
         self.image_label.setAlignment(Qt.AlignCenter)
-        # self.image_label.setStyleSheet("background-color: white; border: 1px solid #ddd;")
+
+        # 缩放并裁剪图片
+        scaled_pixmap = self.scale_and_crop_pixmap(pixmap, 300, 150)
+        self.image_label.setPixmap(scaled_pixmap)
 
         # 删除按钮
         self.delete_button = QPushButton()
@@ -141,6 +145,29 @@ class ScreenshotItem(QWidget):
         # 将容器添加到主布局
         main_layout.addWidget(container)
 
+    def scale_and_crop_pixmap(self, pixmap, target_width, target_height):
+        # 计算缩放比例
+        width_ratio = target_width / pixmap.width()
+        height_ratio = target_height / pixmap.height()
+        scale_ratio = max(width_ratio, height_ratio)
+
+        # 缩放图片
+        scaled_pixmap = pixmap.scaled(
+            pixmap.width() * scale_ratio,
+            pixmap.height() * scale_ratio,
+            Qt.KeepAspectRatio,
+            Qt.SmoothTransformation
+        )
+
+        # 裁剪图片
+        x = (scaled_pixmap.width() - target_width) // 2
+        y = (scaled_pixmap.height() - target_height) // 2
+        cropped_pixmap = scaled_pixmap.copy(
+            x, y, target_width, target_height
+        )
+
+        return cropped_pixmap
+
     def enterEvent(self, event):
         self.delete_button.show()
 
@@ -149,6 +176,7 @@ class ScreenshotItem(QWidget):
 
     def sizeHint(self):
         return QSize(150, 150)
+
 
 
 class Separator(QWidget):
@@ -1383,7 +1411,7 @@ if __name__ == "__main__":
             tool.show()
 
 
-        QTimer.singleShot(5000, show_main_window)
+        QTimer.singleShot(500, show_main_window)
 
         app.aboutToQuit.connect(app.deleteLater)
 
@@ -1392,6 +1420,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"An error occurred: {e}")
         traceback.print_exc()
-    finally:
-        if 'pipe_handle' in locals():
-            win32file.CloseHandle(pipe_handle)
+    # finally:
+    #     if 'pipe_handle' in locals():
+    #         win32file.CloseHandle(pipe_handle)
