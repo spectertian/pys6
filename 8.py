@@ -22,37 +22,37 @@ import os
 import tempfile
 
 
-# import win32pipe, win32file, pywintypes
-# def is_already_running():
-#     try:
-#         pipe_name = r'\\.\pipe\ScreenshotToolSingleInstance'
-#         handle = win32file.CreateFile(
-#             pipe_name,
-#             win32file.GENERIC_READ | win32file.GENERIC_WRITE,
-#             0,
-#             None,
-#             win32file.OPEN_EXISTING,
-#             0,
-#             None
-#         )
-#         # 如果能打开管道，说明已经有一个实例在运行
-#         win32file.CloseHandle(handle)
-#         return True
-#     except pywintypes.error:
-#         # 如果管道不存在，说明这是第一个实例
-#         return False
-#
-# def create_single_instance_pipe():
-#     pipe_name = r'\\.\pipe\ScreenshotToolSingleInstance'
-#     pipe_handle = win32pipe.CreateNamedPipe(
-#         pipe_name,
-#         win32pipe.PIPE_ACCESS_DUPLEX,
-#         win32pipe.PIPE_TYPE_MESSAGE | win32pipe.PIPE_READMODE_MESSAGE | win32pipe.PIPE_WAIT,
-#         1, 65536, 65536,
-#         0,
-#         None
-#     )
-#     return pipe_handle
+import win32pipe, win32file, pywintypes
+def is_already_running():
+    try:
+        pipe_name = r'\\.\pipe\ScreenshotToolSingleInstance'
+        handle = win32file.CreateFile(
+            pipe_name,
+            win32file.GENERIC_READ | win32file.GENERIC_WRITE,
+            0,
+            None,
+            win32file.OPEN_EXISTING,
+            0,
+            None
+        )
+        # 如果能打开管道，说明已经有一个实例在运行
+        win32file.CloseHandle(handle)
+        return True
+    except pywintypes.error:
+        # 如果管道不存在，说明这是第一个实例
+        return False
+
+def create_single_instance_pipe():
+    pipe_name = r'\\.\pipe\ScreenshotToolSingleInstance'
+    pipe_handle = win32pipe.CreateNamedPipe(
+        pipe_name,
+        win32pipe.PIPE_ACCESS_DUPLEX,
+        win32pipe.PIPE_TYPE_MESSAGE | win32pipe.PIPE_READMODE_MESSAGE | win32pipe.PIPE_WAIT,
+        1, 65536, 65536,
+        0,
+        None
+    )
+    return pipe_handle
 def global_exception_handler(exctype, value, traceback):
     print("Unhandled exception:", exctype, value)
     print("Traceback:")
@@ -1347,11 +1347,11 @@ class GlobalEventFilter(QObject):
 
 if __name__ == "__main__":
     try:
-        # if is_already_running():
-        #     print("Application is already running.")
-        #     sys.exit(0)
-        #
-        # pipe_handle = create_single_instance_pipe()
+        if is_already_running():
+            print("Application is already running.")
+            sys.exit(0)
+
+        pipe_handle = create_single_instance_pipe()
 
         sys.excepthook = global_exception_handler
         app = QApplication(sys.argv)
@@ -1379,6 +1379,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"An error occurred: {e}")
         traceback.print_exc()
-    # finally:
-    # if 'pipe_handle' in locals():
-    #     win32file.CloseHandle(pipe_handle)
+    finally:
+        if 'pipe_handle' in locals():
+            win32file.CloseHandle(pipe_handle)
