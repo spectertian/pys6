@@ -121,7 +121,7 @@ class ScreenshotTool(QMainWindow):
         super().__init__()
 
         # 设置窗口无边框
-        self.setWindowFlags(Qt.FramelessWindowHint)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground)
 
         # 创建阴影效果
@@ -381,6 +381,23 @@ class ScreenshotTool(QMainWindow):
 
 
         self.preview_windows = []
+        # 设置窗口标志
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
+
+        # 创建定时器，每秒提升一次窗口
+        self.raise_timer = QTimer(self)
+        self.raise_timer.timeout.connect(self.ensure_on_top)
+        self.raise_timer.start(1000)  # 每1000毫秒（1秒）触发一次
+
+    def ensure_on_top(self):
+        self.raise_()
+        self.activateWindow()
+
+    def show_window(self):
+        print("Showing main window")
+        self.show()
+        self.raise_()
+        self.activateWindow()
 
     def paintEvent(self, event):
         # 重写绘制事件，绘制圆角矩形
@@ -486,6 +503,7 @@ class ScreenshotTool(QMainWindow):
 
     def show_window(self):
         print("Showing main window")
+        self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
         self.show()
         self.activateWindow()  # 确保窗口被激活
     def enterEvent(self, event):
@@ -653,6 +671,7 @@ class ScreenshotTool(QMainWindow):
             self.show()  # 确保主窗口总是被显示
             print("Showing main window")
             # self.is_capturing = False  # 重置标志
+            self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
 
     def load_saved_screenshots(self):
         self.screenshot_list.clear()
