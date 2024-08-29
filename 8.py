@@ -22,37 +22,37 @@ import os
 import tempfile
 
 
-import win32pipe, win32file, pywintypes
-def is_already_running():
-    try:
-        pipe_name = r'\\.\pipe\ScreenshotToolSingleInstance'
-        handle = win32file.CreateFile(
-            pipe_name,
-            win32file.GENERIC_READ | win32file.GENERIC_WRITE,
-            0,
-            None,
-            win32file.OPEN_EXISTING,
-            0,
-            None
-        )
-        # 如果能打开管道，说明已经有一个实例在运行
-        win32file.CloseHandle(handle)
-        return True
-    except pywintypes.error:
-        # 如果管道不存在，说明这是第一个实例
-        return False
-
-def create_single_instance_pipe():
-    pipe_name = r'\\.\pipe\ScreenshotToolSingleInstance'
-    pipe_handle = win32pipe.CreateNamedPipe(
-        pipe_name,
-        win32pipe.PIPE_ACCESS_DUPLEX,
-        win32pipe.PIPE_TYPE_MESSAGE | win32pipe.PIPE_READMODE_MESSAGE | win32pipe.PIPE_WAIT,
-        1, 65536, 65536,
-        0,
-        None
-    )
-    return pipe_handle
+# import win32pipe, win32file, pywintypes
+# def is_already_running():
+#     try:
+#         pipe_name = r'\\.\pipe\ScreenshotToolSingleInstance'
+#         handle = win32file.CreateFile(
+#             pipe_name,
+#             win32file.GENERIC_READ | win32file.GENERIC_WRITE,
+#             0,
+#             None,
+#             win32file.OPEN_EXISTING,
+#             0,
+#             None
+#         )
+#         # 如果能打开管道，说明已经有一个实例在运行
+#         win32file.CloseHandle(handle)
+#         return True
+#     except pywintypes.error:
+#         # 如果管道不存在，说明这是第一个实例
+#         return False
+#
+# def create_single_instance_pipe():
+#     pipe_name = r'\\.\pipe\ScreenshotToolSingleInstance'
+#     pipe_handle = win32pipe.CreateNamedPipe(
+#         pipe_name,
+#         win32pipe.PIPE_ACCESS_DUPLEX,
+#         win32pipe.PIPE_TYPE_MESSAGE | win32pipe.PIPE_READMODE_MESSAGE | win32pipe.PIPE_WAIT,
+#         1, 65536, 65536,
+#         0,
+#         None
+#     )
+#     return pipe_handle
 def global_exception_handler(exctype, value, traceback):
     print("Unhandled exception:", exctype, value)
     print("Traceback:")
@@ -456,6 +456,7 @@ class ScreenshotTool(QMainWindow):
         self.raise_timer.timeout.connect(self.ensure_on_top)
         self.raise_timer.start(1000)  # 每1000毫秒（1秒）触发一次
 
+        self.preview_dialog = None  # 用于存储当前的预览对话框
     def ensure_on_top(self):
         self.raise_()
         self.activateWindow()
@@ -763,13 +764,16 @@ class ScreenshotTool(QMainWindow):
     def show_full_screenshot(self, item):
         item_widget = self.screenshot_list.itemWidget(item)
         file_path = os.path.join("screenshots", item_widget.filename)
-        preview_dialog = ImagePreviewDialog(file_path, self)
-        preview_dialog.show()
-        self.preview_windows.append(preview_dialog)
 
-        # 设置新窗口的位置，避免完全重叠
-        offset = len(self.preview_windows) * 20
-        preview_dialog.move(preview_dialog.pos() + QPoint(offset, offset))
+        if self.preview_dialog is None:
+            # 如果没有预览对话框，创建一个新的
+            self.preview_dialog = ImagePreviewDialog(file_path, self)
+            self.preview_dialog.show()
+        else:
+            # 如果已存在预览对话框，更新它
+            self.preview_dialog.update_image(file_path)
+            self.preview_dialog.show()  # 确保对话框可见
+            self.preview_dialog.raise_()  # 将对话框置于顶层
 
     # def closeEvent(self, event):
     #     # 关闭所有预览窗口
@@ -1162,6 +1166,15 @@ class ImagePreviewDialog(QDialog):
         # 使用 QTimer 来延迟加载图片信息
         QTimer.singleShot(0, self.startLoading)
 
+    def update_image(self, new_image_path):
+        self.image_path = new_image_path
+        self.original_pixmap = QPixmap(new_image_path)
+        self.updateImageSize()
+        self.updateDialogSize()
+        self.centerOnScreen()
+
+        # 重新开始加载过程
+        self.startLoading()
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.dragging = True
@@ -1347,11 +1360,11 @@ class GlobalEventFilter(QObject):
 
 if __name__ == "__main__":
     try:
-        if is_already_running():
-            print("Application is already running.")
-            sys.exit(0)
-
-        pipe_handle = create_single_instance_pipe()
+        # if is_already_running():
+        #     print("Application is already running.")
+        #     sys.exit(0)
+        #
+        # pipe_handle = create_single_instance_pipe()
 
         sys.excepthook = global_exception_handler
         app = QApplication(sys.argv)
