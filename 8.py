@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QPushButton,
                                QRubberBand, QDialog, QDialogButtonBox, QListWidgetItem,
                                QScrollArea, QMessageBox, QGridLayout, QToolTip, QStyle, QGraphicsDropShadowEffect)
 from PySide6.QtGui import (QPixmap, QScreen, QPainter, QColor, QIcon, QGuiApplication,
-                           QImage, QTransform, QCursor, QPainterPath, QRegion, QPalette)
+                           QImage, QTransform, QCursor, QPainterPath, QRegion, QPalette, QPen)
 from PySide6.QtCore import (Qt, QRect, QPoint, Signal, QSize, QPropertyAnimation,
                             QEasingCurve, Property, QEvent, QThread, QTimer, QThreadPool, QRunnable, QObject)
 
@@ -20,42 +20,46 @@ from PySide6.QtGui import QPixmap, QGuiApplication
 import sys
 import os
 import tempfile
-import win32pipe, win32file, pywintypes
-def is_already_running():
-    try:
-        pipe_name = r'\\.\pipe\ScreenshotToolSingleInstance'
-        handle = win32file.CreateFile(
-            pipe_name,
-            win32file.GENERIC_READ | win32file.GENERIC_WRITE,
-            0,
-            None,
-            win32file.OPEN_EXISTING,
-            0,
-            None
-        )
-        # 如果能打开管道，说明已经有一个实例在运行
-        win32file.CloseHandle(handle)
-        return True
-    except pywintypes.error:
-        # 如果管道不存在，说明这是第一个实例
-        return False
 
-def create_single_instance_pipe():
-    pipe_name = r'\\.\pipe\ScreenshotToolSingleInstance'
-    pipe_handle = win32pipe.CreateNamedPipe(
-        pipe_name,
-        win32pipe.PIPE_ACCESS_DUPLEX,
-        win32pipe.PIPE_TYPE_MESSAGE | win32pipe.PIPE_READMODE_MESSAGE | win32pipe.PIPE_WAIT,
-        1, 65536, 65536,
-        0,
-        None
-    )
-    return pipe_handle
+
+# import win32pipe, win32file, pywintypes
+# def is_already_running():
+#     try:
+#         pipe_name = r'\\.\pipe\ScreenshotToolSingleInstance'
+#         handle = win32file.CreateFile(
+#             pipe_name,
+#             win32file.GENERIC_READ | win32file.GENERIC_WRITE,
+#             0,
+#             None,
+#             win32file.OPEN_EXISTING,
+#             0,
+#             None
+#         )
+#         # 如果能打开管道，说明已经有一个实例在运行
+#         win32file.CloseHandle(handle)
+#         return True
+#     except pywintypes.error:
+#         # 如果管道不存在，说明这是第一个实例
+#         return False
+#
+# def create_single_instance_pipe():
+#     pipe_name = r'\\.\pipe\ScreenshotToolSingleInstance'
+#     pipe_handle = win32pipe.CreateNamedPipe(
+#         pipe_name,
+#         win32pipe.PIPE_ACCESS_DUPLEX,
+#         win32pipe.PIPE_TYPE_MESSAGE | win32pipe.PIPE_READMODE_MESSAGE | win32pipe.PIPE_WAIT,
+#         1, 65536, 65536,
+#         0,
+#         None
+#     )
+#     return pipe_handle
 def global_exception_handler(exctype, value, traceback):
     print("Unhandled exception:", exctype, value)
     print("Traceback:")
     import traceback as tb
     tb.print_tb(traceback)
+
+
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
     try:
@@ -65,6 +69,8 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
+
+
 class SplashScreen(QWidget):
     def __init__(self):
         super().__init__()
@@ -77,7 +83,7 @@ class SplashScreen(QWidget):
         self.label.setPixmap(pixmap)
         layout.addWidget(self.label)
 
-        self.setFixedSize(pixmap.width()+120, pixmap.height()+140)
+        self.setFixedSize(pixmap.width() + 120, pixmap.height() + 140)
         self.center()
 
     def center(self):
@@ -85,6 +91,8 @@ class SplashScreen(QWidget):
         cp = QGuiApplication.primaryScreen().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
+
+
 class ScreenshotItem(QWidget):
     def __init__(self, pixmap, filename, parent=None):
         super().__init__(parent)
@@ -142,6 +150,7 @@ class ScreenshotItem(QWidget):
     def sizeHint(self):
         return QSize(150, 150)
 
+
 class Separator(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -150,6 +159,7 @@ class Separator(QWidget):
         palette = self.palette()
         palette.setColor(QPalette.Window, QColor("#FFA500"))  # 设置背景色
         self.setPalette(palette)
+
 
 class ScreenshotTool(QMainWindow):
     def __init__(self):
@@ -242,7 +252,7 @@ class ScreenshotTool(QMainWindow):
                 color: black;
                 border: none;
                 padding: 5px 10px;
-                font-size: 14px;
+                font-size: 16px;
                 font-weight: bold;
                 text-align: left;  /* 文字左对齐 */
             }
@@ -264,7 +274,7 @@ class ScreenshotTool(QMainWindow):
         self.title_label = QLabel("截图板")
         self.title_label.setStyleSheet("""
                     color: white;
-                    font-size: 18px;
+                    font-size: 20px;
                     font-weight: bold;
                 """)
         self.title_label.setAlignment(Qt.AlignCenter)
@@ -277,7 +287,7 @@ class ScreenshotTool(QMainWindow):
                 color: black;
                 border: none;  /* 无边框 */
                 padding: 5px 10px;
-                font-size: 14px;
+                font-size: 16px;
                 font-weight: bold;
             }
             QPushButton:hover {
@@ -325,16 +335,40 @@ class ScreenshotTool(QMainWindow):
         self.screenshot_list.setSpacing(10)
         self.screenshot_list.itemDoubleClicked.connect(self.show_full_screenshot)
         self.screenshot_list.setStyleSheet("""
-            QListWidget::item:selected {
-                background-color: transparent;
-                border: 3px solid #E2974B;
-                padding: 2px;
-            }
-            QListWidget::item:hover {
-                background-color: transparent;
-                border: 1px solid #E2974B;
-            }
-        """)
+                    QListWidget {
+                        border: none;
+                        background-color: #f0f0f0;
+                    }
+                    QListWidget::item {
+                        border-bottom: 1px solid #e0e0e0;
+                        padding: 5px;
+                    }
+                    QListWidget::item:selected {
+                        background-color: transparent;
+                        border: 3px solid #E2974B;
+                        padding: 2px;
+                    }
+                    QScrollBar:vertical {
+                        border: none;
+                        background: #f0f0f0;
+                        width: 10px;
+                        margin: 0px 0px 0px 0px;
+                    }
+                    QScrollBar::handle:vertical {
+                        background: #c0c0c0;
+                        min-height: 30px;
+                        border-radius: 5px;
+                    }
+                    QScrollBar::handle:vertical:hover {
+                        background: #a0a0a0;
+                    }
+                    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                        height: 0px;
+                    }
+                    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                        background: none;
+                    }
+                """)
 
         bottom_layout.addWidget(self.screenshot_list)
 
@@ -350,7 +384,6 @@ class ScreenshotTool(QMainWindow):
         self.is_dragging = False
         self.drag_position = None
         self.at_top_edge = False
-
 
         self.animation = QPropertyAnimation(self, b"geometry")
         self.animation.setDuration(300)
@@ -414,7 +447,6 @@ class ScreenshotTool(QMainWindow):
 
         self.set_rounded_corners()
 
-
         self.preview_windows = []
         # 设置窗口标志
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
@@ -452,19 +484,20 @@ class ScreenshotTool(QMainWindow):
         if event.buttons() == Qt.LeftButton:
             self.move(event.globalPos() - self.dragPosition)
             event.accept()
+
     def set_rounded_corners(self):
         radius = 10  # 圆角半径，可以根据需要调整
         path = QPainterPath()
         path.addRoundedRect(self.rect(), radius, radius)
         mask = QRegion(path.toFillPolygon().toPolygon())
         self.setMask(mask)
+
     def resizeEvent(self, event):
         super().resizeEvent(event)
 
         if not self.is_expanded:
             self.collapsed_widget.setFixedSize(self.width(), self.collapsed_height)
         self.set_rounded_corners()  # 在窗口大小改变时重新设置圆角
-
 
     def close_application(self):
         # 关闭所有子窗口
@@ -515,12 +548,13 @@ class ScreenshotTool(QMainWindow):
         if QApplication.instance().topLevelWindows() == 0:
             print("No more windows, quitting application...")
             QApplication.instance().quit()
+
     def closeEvent(self, event):
         print("Close event triggered")
         if self.is_capturing:
             event.ignore()  # 如果正在截图，忽略关闭事件
             print("Close event ignored due to ongoing capture")
-            self.is_capturing= False
+            self.is_capturing = False
         else:
             event.accept()  # 否则接受关闭事件
             print("Close event accepted")
@@ -541,6 +575,7 @@ class ScreenshotTool(QMainWindow):
         self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
         self.show()
         self.activateWindow()  # 确保窗口被激活
+
     def enterEvent(self, event):
         if not self.is_expanded and self.is_at_top:
             self.expand()
@@ -574,9 +609,9 @@ class ScreenshotTool(QMainWindow):
             if not self.is_expanded:
                 self.expand()
 
-
     def snap_to_top(self):
         self.move(self.x(), 0)
+
     def snap_to_edge(self):
         screen_geometry = self.screen.availableGeometry()
         pos = self.pos()
@@ -628,7 +663,6 @@ class ScreenshotTool(QMainWindow):
         self.expand()
         self.move(self.constrainToScreen(self.pos()))
         self.check_top_edge()
-
 
     def create_tab_button(self, text, icon_path):
         button = QPushButton()
@@ -766,8 +800,8 @@ class ScreenshotTool(QMainWindow):
         self.image_label.clear()
 
 
-
 from PySide6.QtCore import Signal, QRect, QPoint
+
 
 class ScreenCapture(QWidget):
     screenshot_taken = Signal(QPixmap, QRect)
@@ -785,14 +819,37 @@ class ScreenCapture(QWidget):
         self.end = QPoint()
         self.rubberBand = QRubberBand(QRubberBand.Rectangle, self)
 
-
-
+        # 使用自定义十字光标
+        self.setCursor(self.create_cross_cursor())
         print("ScreenCapture initialized")
+
+    def create_cross_cursor(self):
+        pixmap = QPixmap(32, 32)
+        pixmap.fill(Qt.transparent)
+        painter = QPainter(pixmap)
+
+        # 绘制白色十字
+        white_pen = QPen(QColor(255, 255, 255))
+        white_pen.setWidth(3)
+        painter.setPen(white_pen)
+        painter.drawLine(QPoint(16, 0), QPoint(16, 32))
+        painter.drawLine(QPoint(0, 16), QPoint(32, 16))
+
+        # 绘制黑色边框
+        black_pen = QPen(QColor(0, 0, 0))
+        black_pen.setWidth(1)
+        painter.setPen(black_pen)
+        painter.drawLine(QPoint(16, 0), QPoint(16, 32))
+        painter.drawLine(QPoint(0, 16), QPoint(32, 16))
+
+        painter.end()
+        return QCursor(pixmap, 16, 16)
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape:
             print("Escape key pressed, closing ScreenCapture")
             self.close()
+
     def mousePressEvent(self, event):
         self.begin = event.position().toPoint()
         self.end = self.begin
@@ -812,6 +869,11 @@ class ScreenCapture(QWidget):
             self.screenshot_taken.emit(pixmap, rect)
         self.finished.emit()  # 发射 finished 信号
         self.close()
+
+    def show(self):
+        super().show()
+        # 确保在显示窗口时也设置光标
+        self.setCursor(self.create_cross_cursor())
 
 
 class SaveDialog(QDialog):
@@ -849,7 +911,6 @@ class SaveDialog(QDialog):
             buttons_layout.setContentsMargins(10, 10, 10, 10)
             buttons_layout.setSpacing(10)
 
-
             # Create buttons with icons
 
             self.cancel_button = QPushButton()
@@ -884,8 +945,6 @@ class SaveDialog(QDialog):
                 }
             """)
 
-
-
             # Set button size
             button_size = 50
             self.save_button.setFixedSize(button_size, button_size)
@@ -914,6 +973,8 @@ class SaveDialog(QDialog):
     #     except Exception as e:
     #         print(f"Error in SaveDialog reject: {e}")
     #         traceback.print_exc()
+
+
 class SelectionDialog(QDialog):
     def __init__(self, image, parent=None):
         super().__init__(parent, Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
@@ -949,13 +1010,14 @@ class SelectionDialog(QDialog):
 from PySide6.QtWidgets import QLabel
 from PySide6.QtGui import QMovie
 from PySide6.QtCore import Qt, QSize
+
+
 class RotatingLabel(QLabel):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFixedSize(40, 40)  # 设置固定大小
         self.setAttribute(Qt.WA_TranslucentBackground)  # 允许透明背景
         self.setMouseTracking(True)  # 添加这行以支持鼠标跟踪
-
 
         # 创建 QMovie 对象
         self.movie = QMovie(resource_path("icons/loading.gif"))
@@ -986,17 +1048,19 @@ class RotatingLabel(QLabel):
     #     # 清除背景
     #     painter.eraseRect(self.rect())
 
-        # 绘制旋转的图标
-        # painter.translate(self.width() / 2, self.height() / 2)
-        # painter.rotate(self._rotation)
-        # painter.translate(-self._pixmap.width() / 2, -self._pixmap.height() / 2)
-        # painter.drawPixmap(0, 0, self._pixmap)
+    # 绘制旋转的图标
+    # painter.translate(self.width() / 2, self.height() / 2)
+    # painter.rotate(self._rotation)
+    # painter.translate(-self._pixmap.width() / 2, -self._pixmap.height() / 2)
+    # painter.drawPixmap(0, 0, self._pixmap)
+
 
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QLabel, QPushButton, QWidget,
                                QHBoxLayout, QToolTip, QProgressBar)
-from PySide6.QtGui import QPixmap, QIcon, QPainter, QColor,QEventPoint
+from PySide6.QtGui import QPixmap, QIcon, QPainter, QColor, QEventPoint
 from PySide6.QtCore import Qt, QPoint, QSize, Signal, QTimer, QThread, Signal
 import time
+
 
 class ImageInfoThread(QThread):
     info_received = Signal(str)
@@ -1110,6 +1174,7 @@ class ImagePreviewDialog(QDialog):
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.dragging = False
+
     def updateImageSize(self):
         screen = QGuiApplication.primaryScreen().geometry()
         max_width = int(screen.width() * 0.7)
@@ -1140,8 +1205,6 @@ class ImagePreviewDialog(QDialog):
         screen = self.screen().availableGeometry()
         self.move((screen.width() - self.width()) // 2, (screen.height() - self.height()) // 2)
 
-
-
     def startLoading(self):
         self.loading_icon.show()
         self.loading_icon.move(10, 10)  # 放在左上角
@@ -1170,6 +1233,7 @@ class ImagePreviewDialog(QDialog):
     #     if self.parent():
     #         self.parent().remove_preview(self)
     #     event.accept()
+
 
 class LoadingIcon(RotatingLabel):
     def __init__(self, parent=None):
@@ -1258,6 +1322,7 @@ class OverlayWidget(QWidget):
         painter = QPainter(self)
         painter.fillRect(self.rect(), QColor(0, 0, 0, 1))  # 几乎完全透明的背景
 
+
 from PySide6.QtCore import QObject, Qt, QRect, QPoint, Signal, QTimer, QSize
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QPushButton,
                                QVBoxLayout, QHBoxLayout, QListWidget, QLabel,
@@ -1268,6 +1333,8 @@ import sys
 import os
 import time
 import traceback
+
+
 class GlobalEventFilter(QObject):
     def eventFilter(self, obj, event):
         try:
@@ -1277,13 +1344,14 @@ class GlobalEventFilter(QObject):
             traceback.print_exc()
             return False
 
+
 if __name__ == "__main__":
     try:
-        if is_already_running():
-            print("Application is already running.")
-            sys.exit(0)
-
-        pipe_handle = create_single_instance_pipe()
+        # if is_already_running():
+        #     print("Application is already running.")
+        #     sys.exit(0)
+        #
+        # pipe_handle = create_single_instance_pipe()
 
         sys.excepthook = global_exception_handler
         app = QApplication(sys.argv)
@@ -1311,6 +1379,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"An error occurred: {e}")
         traceback.print_exc()
-    finally:
-        if 'pipe_handle' in locals():
-            win32file.CloseHandle(pipe_handle)
+    # finally:
+    # if 'pipe_handle' in locals():
+    #     win32file.CloseHandle(pipe_handle)
