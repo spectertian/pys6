@@ -484,6 +484,7 @@ class ScreenshotTool(QMainWindow):
         self.raise_timer.timeout.connect(self.ensure_on_top)
         self.raise_timer.start(1000)  # 每1000毫秒（1秒）触发一次
 
+        # self.preview_dialog = None  # 用于存储当前的预览对话框
         self.preview_dialog = None  # 用于存储当前的预览对话框
     def ensure_on_top(self):
         self.raise_()
@@ -734,6 +735,10 @@ class ScreenshotTool(QMainWindow):
     def start_capture(self):
         print("Starting capture")
         self.is_capturing = True
+
+        # 关闭当前的预览窗口（如果有）
+        self.close_preview_window()
+
         self.hide()
         print("Main window hidden")
 
@@ -747,6 +752,10 @@ class ScreenshotTool(QMainWindow):
         self.screen_capture.show()
         print("Screen capture shown")
 
+    def close_preview_window(self):
+        if self.preview_dialog is not None:
+            self.preview_dialog.close()
+            self.preview_dialog = None
     def handle_screenshot(self, pixmap, rect):
         print("Handling screenshot")
         try:
